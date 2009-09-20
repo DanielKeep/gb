@@ -3,7 +3,7 @@
  * of other files.  The original motivation for this was appending .map files
  * to executables for DDL.
  * 
- * You can build a simple tail program by compiling this module
+ * You can build a simple tailtool program by compiling this module
  * with -version=gb_io_Tail_tool.
  *
  * Authors: Daniel Keep <daniel.keep@gmail.com>
@@ -17,9 +17,18 @@ import gb.util.Contract;
 import gb.io.Stream;
 
 import tango.core.Exception;
+import tango.io.device.Conduit : InputFilter;
 import tango.io.model.IConduit : IConduit, IOStream, InputStream, OutputStream;
 
-class TailInput : InputStream, IConduit.Seek
+/**
+ * The TailInput class allows you to access the contents of tails appended
+ * to the end of files.
+ * 
+ * Note that this class expects a special footer to tell it how big the
+ * appended file is.  You can create tails using tailtool.
+ */
+
+class TailInput : InputFilter
 {
     /**
      * Creates a new TailInput from an existing InputStream.  This InputStream
@@ -30,7 +39,8 @@ class TailInput : InputStream, IConduit.Seek
     {
         enforceEx!(IOException).enforce(readFooter(ins, offset, length),
                 __FILE__, __LINE__, "couldn't find Tail footer");
-        this.ins = ins;
+        super(ins);
+        open = true;
     }
     
     /**
@@ -44,7 +54,7 @@ class TailInput : InputStream, IConduit.Seek
 
     override size_t read(void[] dst)
     {
-        enforceEx!(IOException).enforce(ins !is null, __FILE__, __LINE__,
+        enforceEx!(IOException).enforce(open, __FILE__, __LINE__,
                 "TailInput has been closed");
 
         if( length - position == 0 )
@@ -53,10 +63,10 @@ class TailInput : InputStream, IConduit.Seek
         if( dst.length > length - position )
             dst = dst[0..(this.length-position)];
         
-        auto oldPos = ins.seek(offset + position, Anchor.Begin);
-        scope(success) ins.seek(oldPos, Anchor.Begin);
+        auto oldPos = input.seek(offset + position, Anchor.Begin);
+        scope(success) input.seek(oldPos, Anchor.Begin);
         
-        auto bytes = ins.read(dst);
+        auto bytes = input.read(dst);
         if( bytes != Eof )
             position += bytes;
         
@@ -74,7 +84,7 @@ class TailInput : InputStream, IConduit.Seek
     
     override void[] load(size_t max = -1)
     {
-        enforceEx!(IOException).enforce(ins !is null, __FILE__, __LINE__,
+        enforceEx!(IOException).enforce(open, __FILE__, __LINE__,
                 "TailInput has been closed");
 
         if( max == 0 )
@@ -102,18 +112,6 @@ class TailInput : InputStream, IConduit.Seek
     }
 
     /**
-     * Return the upstream source
-     */
-
-    override InputStream input()
-    {
-        enforceEx!(IOException).enforce(ins !is null, __FILE__, __LINE__,
-                "TailInput has been closed");
-
-        return this;
-    }
-
-    /**
      * Move the stream position to the given offset from the 
      * provided anchor point, and return adjusted position.
      * 
@@ -123,7 +121,7 @@ class TailInput : InputStream, IConduit.Seek
 
     override long seek(long offset, Anchor anchor = Anchor.Begin)
     {
-        enforceEx!(IOException).enforce(ins !is null, __FILE__, __LINE__,
+        enforceEx!(IOException).enforce(open, __FILE__, __LINE__,
                 "TailInput has been closed");
 
         long newPos;
@@ -156,46 +154,21 @@ class TailInput : InputStream, IConduit.Seek
     }
 
     /**
-     * Return the host conduit
-     */
-
-    override IConduit conduit()
-    {
-        enforceEx!(IOException).enforce(ins !is null, __FILE__, __LINE__,
-                "TailInput has been closed");
-
-        return ins.conduit;
-    }
-
-    /**
-     * Flush buffered content. For InputStream this is equivalent
-     * to clearing buffered content
-     */
-
-    override IOStream flush()
-    {
-        enforceEx!(IOException).enforce(ins !is null, __FILE__, __LINE__,
-                "TailInput has been closed");
-
-        ins.flush;
-        return ins;
-    }
-
-    /**
-     * Close the input
+     * Close the input.  Note that this does $(I not) close the underlying
+     * stream.
      */
 
     override void close()
     {
-        enforceEx!(IOException).enforce(ins !is null, __FILE__, __LINE__,
+        enforceEx!(IOException).enforce(open, __FILE__, __LINE__,
                 "TailInput has been closed");
 
-        ins = null;
+        open = false;
     }
     
     protected
     {
-        InputStream ins;
+        bool open = false;
         
         long position,
              offset,
@@ -255,6 +228,48 @@ class TailInput : InputStream, IConduit.Seek
 }
 
 /**
+ * Checks the given source to see if it has a tail.
+ */
+
+bool hasTail(InputStream source)
+{
+    long _a, _b;
+    return TailInput.readFooter(source, _a, _b);
+}
+
+/**
+ * Assists in removing the tail from a source.  The second argument is a
+ * delegate which will be called with the length to truncate the source to.
+ */
+
+void removeTail(InputStream source, void delegate(long) truncate)
+{
+    long offset, _a;
+    enforceEx!(IOException).enforce(TailInput.readFooter(source, offset, _a),
+            __FILE__, __LINE__,
+            "cannot remove tail; provided source doesn't have one");
+    truncate(offset);
+}
+
+/**
+ * Appends the source data to the end of the dest stream as a tail.
+ * Note that this will ignore any existing tails.
+ */
+
+void appendTail(InputStream source, OutputStream dest)
+{
+    dest.seek(0, OutputStream.Anchor.End);
+    dest.copy(source);
+    {
+        TailFooter footer;
+        footer.magic = TailFooter.MAGIC_VALUE;
+        footer.length = source.seek(0, InputStream.Anchor.Current);
+        static assert( Version!("LittleEndian"), "TODO: byte swap" );
+        writeFrom(dest, footer);
+    }
+}
+
+/**
  * This structure represents the footer that identifies an embedded tail
  * file.  All values are stored in little-endian.
  */
@@ -263,6 +278,38 @@ struct TailFooter
     const uint MAGIC_VALUE = 0x4c494154;
     uint magic; /// Should be "TAIL" or 0x4c494154
     long length; /// Size of the embedded file.
+}
+
+version( Unittest )
+{
+    import tango.io.device.Array;
+    
+    unittest
+    {
+        const DATA1 = "Everybody dance now!";
+        const DATA2 = "Give me the music!";
+        const DATA3 = DATA1 ~ DATA2 ~ "TAIL"
+            ~ cast(char)(DATA2.length) ~ "\0\0\0";
+        
+        scope data1 = new Array(DATA1);
+        scope data2 = new Array(DATA2);
+        scope data3 = new Array;
+        
+        data3.copy(data1);
+        appendTail(data2, data3);
+        
+        assert( cast(char[]) data3.slice == DATA3 );
+        
+        scope data4 = new Array(data3.slice);
+        scope tins = new TailInput(data4);
+        assert( cast(char[]) tins.load == DATA2 );
+        
+        scope data5 = new Array(data3.slice);
+        removeTail(data5, (long length)
+        {
+            assert( length == DATA1.length );
+        });
+    }
 }
 
 version( gb_io_Tail_tool )
@@ -297,17 +344,8 @@ version( gb_io_Tail_tool )
         }
         
         auto outs = tailFile.output;
-        outs.seek(0, IConduit.Anchor.End);
-        
-        outs.copy(ins);
-        
-        {
-            TailFooter footer;
-            footer.magic = TailFooter.MAGIC_VALUE;
-            footer.length = ins.seek(0, IConduit.Anchor.Current);
-            static assert( Version!("LittleEndian"), "TODO: byte swap" );
-            writeFrom(outs, footer);
-        }
+
+        appendTail(ins, outs);
         
         return ERR_DONE;
     }
@@ -329,6 +367,22 @@ version( gb_io_Tail_tool )
         auto outs = destFile.output;
         
         outs.copy(ins);
+        
+        return ERR_DONE;
+    }
+    
+    int remove(char[] exec, char[][] args)
+    {
+        if( args.length != 1 )
+        {
+            Stderr.format(USAGE_REMOVE, exec);
+            return ERR_GENERAL;
+        }
+        
+        scope tailFile = new File(args[0], File.ReadWriteExisting);
+        scope(exit) tailFile.close;
+        
+        removeTail(tailFile, &tailFile.truncate);
         
         return ERR_DONE;
     }
@@ -355,6 +409,7 @@ version( gb_io_Tail_tool )
         {
             case "append":  handler = &append;  break;
             case "extract": handler = &extract; break;
+            case "remove":  handler = &remove;  break;
             default:
                 Stderr("Unknown command \""~args[0]~"\".").newline;
                 showHelp;
@@ -368,9 +423,9 @@ version( gb_io_Tail_tool )
 "Usage:\n"
 "  {0} append SRCFILE TAILFILE\n"
 "  {0} extract TAILFILE DESTFILE\n"
+"  {0} remove TAILFILE\n"
 "\n"
-"{0} append will append the first file to the second.\n"
-"{0} extract will extract the tail from the first file as the second.\n";
+"Use {0} COMMAND for more information.\n";
     
     const USAGE_APPEND =
 "Usage: {0} append SRCFILE TAILFILE\n"
@@ -381,6 +436,11 @@ version( gb_io_Tail_tool )
 "Usage: {0} extract TAILFILE DESTFILE\n"
 "\n"
 "Extracts the tail of the first file as the second.\n";
+    
+    const USAGE_REMOVE =
+"Usage: {0} remove TAILFILE\n"
+"\n"
+"Removes the tail from the specified file.\n";
     
     enum
     {
