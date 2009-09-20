@@ -6,60 +6,22 @@
  */
 module gb.util.Contract;
 
+import gb.util.Exceptions : SimpleException;
+
 import tango.util.Convert;
 
 /**
  * This exception is thrown when an enforced check fails.
  */
-class EnforceException : Exception
-{
-    this()
-    {
-        super("Enforcement failure");
-    }
-    
-    this(char[] msg)
-    {
-        super(msg);
-    }
-    
-    this(char[] file, long line)
-    {
-        super("Enforcement failure", file, line);
-    }
-    
-    this(char[] msg, char[] file, long line)
-    {
-        super(msg, file, line);
-    }
-}
+
+mixin SimpleException!("Enforce", "Enforcement fialure");
 
 /**
  * This exception is thrown if a null reference is found where one is not
  * expected.
  */
-class NullException : Exception
-{
-    this()
-    {
-        super("Unexpected null reference");
-    }
-    
-    this(char[] msg)
-    {
-        super(msg);
-    }
-    
-    this(char[] file, long line)
-    {
-        super("Unexpected null reference", file, line);
-    }
-    
-    this(char[] msg, char[] file, long line)
-    {
-        super(msg, file, line);
-    }
-}
+
+mixin SimpleException!("Null", "Unexpected null reference");
 
 /**
  * Enforces that the value of the expression passed to it is logically true.
