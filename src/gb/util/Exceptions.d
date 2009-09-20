@@ -38,5 +38,6 @@ template SimpleException(char[] name, char[] defaultMsg = "")
         ~ "this(char[] msg) { super(msg); }"
         ~ "this(char[] msg, char[] file, long line)"
                 "{ super(msg, file, line); }"
+        ~ "}"  
         );
 }
