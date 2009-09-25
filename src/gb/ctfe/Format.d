@@ -102,7 +102,8 @@ char[] format_ctfe(Args...)(char[] tmpl, Args args)
     while( tmpl.length > 0 )
     {
         bool inExp = false;
-        
+       
+        // Look for a $
         foreach( i,c ; tmpl )
         {
             if (c == '$')
@@ -114,12 +115,15 @@ char[] format_ctfe(Args...)(char[] tmpl, Args args)
             }
         }
 
+        // If we didn't find a $, it's because we hit the end of the template.
         if( !inExp )
         {
             r ~= tmpl;
             break;
         }
         
+        // So we're in an expansion/substitution.
+
         debug(gb_Format_verbose) r ~= "{in exp}";
 
         if( tmpl.length == 0 )
@@ -127,10 +131,13 @@ char[] format_ctfe(Args...)(char[] tmpl, Args args)
             r ~= "{unterminated substitution}";
             break;
         }
-        
+
+        // c is the next character, whilst tmpl is everything left in the
+        // template string.
         char c = tmpl[0];
         tmpl = tmpl[1..$];
         
+        // $$ - escaped $.
         if( c == '$' )
         {
             debug(gb_Format_verbose) r ~= "{escaped $}";
@@ -138,6 +145,7 @@ char[] format_ctfe(Args...)(char[] tmpl, Args args)
             continue;
         }
 
+        // $n - shortcut for ${n}.
         if( '0' <= c && c <= '9' )
         {
             debug(gb_Format_verbose) r ~= "{shorthand index}";
@@ -145,6 +153,7 @@ char[] format_ctfe(Args...)(char[] tmpl, Args args)
             continue;
         }
 
+        // $* - shortcut for ${}
         if( c == '*' )
         {
             debug(gb_Format_verbose) r ~= "{shorthand next}";
@@ -152,6 +161,7 @@ char[] format_ctfe(Args...)(char[] tmpl, Args args)
             continue;
         }
 
+        // This means we got a $ followed by something unexpected.
         if( c != '{' )
         {
             r ~= "{malformed substitution}";
@@ -171,12 +181,19 @@ char[] format_ctfe(Args...)(char[] tmpl, Args args)
             r ~= "':\"" ~ tmpl ~ "\"}";
         }
 
+        // NOTE: We haven't updated c and tmpl yet.
+
         {
+            // arg will contain the index of the argument the user wanted
+            // substituted.
             size_t arg = size_t.max;
+            // fmt will contain any additional formatting options.
             char[] fmt = "";
 
+            // If we didn't get a : or }, that means we expect an index.
             if( !( tmpl[0] == ':' || tmpl[0] == '}' ) )
             {
+                // So parse it.
                 auto used = Integer.parse_ctfe!(size_t)(tmpl, true);
                 
                 if( used == 0 )
@@ -197,6 +214,8 @@ char[] format_ctfe(Args...)(char[] tmpl, Args args)
             }
             else
             {
+                // Otherwise, the index was elided, which means we want to use
+                // the index of the "next" argument.
                 arg = argPos;
                 ++ argPos;
             }
@@ -207,10 +226,13 @@ char[] format_ctfe(Args...)(char[] tmpl, Args args)
             debug(gb_Format_verbose)
                 r ~= "{index " ~ Integer.format_ctfe(arg) ~ "}";
 
+            // If c is :, then we've got formatting options to parse
+
             if( c == ':' )
             {
                 debug(gb_Format_verbose) r ~= "{fmt string}";
 
+                // Look for the closing }.
                 size_t len = 0;
                 foreach( i,d ; tmpl )
                 {
@@ -237,6 +259,9 @@ char[] format_ctfe(Args...)(char[] tmpl, Args args)
                 c = tmpl[0];
                 tmpl = tmpl[1..$];
             }
+
+            // At this point, we should have the closing }.  If not, someone's
+            // screwed up.
             if( c != '}' )
             {
                 debug(gb_Format_verbose)
@@ -248,7 +273,13 @@ char[] format_ctfe(Args...)(char[] tmpl, Args args)
                 r ~= "{malformed substitution}";
                 break;
             }
+
+            // Stringify that bugger.
             r ~= stringify(arg, 0, fmt, args);
+
+            // When we fall off the end here, we'll continue with the
+            // remainder of tmpl, unless it's empty in which case we're
+            // finished.
         }
     }
     
