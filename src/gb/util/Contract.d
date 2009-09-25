@@ -68,8 +68,14 @@ T enforce(T, FileT, LineT)(T expr, FileT file, LineT line, lazy char[] msg = nul
 
 version( Unittest )
 {
+    import tango.io.Stdout;
+
     unittest
     {
+        Stderr.formatln("BEGIN {}:{}", __FILE__, __LINE__);
+        scope(success) Stderr.formatln("SUCCESS");
+        scope(failure) Stderr.formatln("FAILURE");
+
         assert( enforce(4) == 4 );
         assert( enforce(true, __FILE__, __LINE__) == true );
         try
@@ -207,8 +213,14 @@ else
             this(char[] msg, char[] file, long line) { super(msg, file, line); }
         }
         
+        import tango.io.Stdout;
+
         unittest
         {
+            Stderr.formatln("BEGIN {}:{}", __FILE__, __LINE__);
+            scope(success) Stderr.formatln("SUCCESS");
+            scope(failure) Stderr.formatln("FAILURE");
+
             enforceEx!(DummyException).enforce(true);
             enforceEx!(DummyException).enforce(true, "I've been kickin' ass");
             enforceEx!(DummyException).enforce(true, __FILE__, __LINE__);
@@ -307,8 +319,14 @@ else
     
     version( Unittest )
     {
+        import tango.io.Stdout;
+
         unittest
         {
+            Stderr.formatln("BEGIN {}:{}", __FILE__, __LINE__);
+            scope(success) Stderr.formatln("SUCCESS");
+            scope(failure) Stderr.formatln("FAILURE");
+
             scope a = new Object;
             scope b = new int;
             scope c = "abc".dup;
