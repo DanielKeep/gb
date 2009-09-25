@@ -59,7 +59,7 @@ char[] escape_ctfe(char[] str, bool aggressive=true)
             tail ~= `\"`;
         
         else if( c == '\\' )
-            tail ~= `\\`;
+            tail ~= "\\\\";
         
         else if( c == '\0' )
             tail ~= `\0`;
@@ -136,6 +136,35 @@ version( Unittest )
  */
 
 char[] hexify_ctfe(ubyte[] arr, int grouping = 0)
+{
+    char[] r = "";
+    int bytes = grouping;
+    foreach( b ; arr )
+    {
+        if( bytes == 0 && grouping > 0 )
+        {
+            r ~= ' ';
+            bytes = grouping;
+        }
+
+        auto bh = b/16;
+        auto bl = b&15;
+        
+        assert( bh < 16 );
+        assert( bl < 16 );
+        
+        r ~= HEX_CHARS[bh];
+        r ~= HEX_CHARS[bl];
+        
+        if( grouping > 0 )
+            -- bytes;
+    }
+    return r;
+}
+
+/// ditto
+
+char[] hexify_ctfe(char[] arr, int grouping = 0)
 {
     char[] r = "";
     int bytes = grouping;
