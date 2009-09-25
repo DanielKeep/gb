@@ -19,6 +19,8 @@ class CompilerArgs
     bool generateSymbols = false;
     bool enableDebug = false;
     bool enableUnitTest = false;
+
+    char[][] versions;
     
     char[] output = null;
     
@@ -41,6 +43,10 @@ class Dmd : Compiler
         if( args.generateSymbols ) dmdArgs ~= "-g";
         if( args.enableDebug ) dmdArgs ~= "-debug";
         if( args.enableUnitTest ) dmdArgs ~= "-unittest";
+
+        foreach( ver ; args.versions )
+            dmdArgs ~= "-version=" ~ ver;
+
         if( args.output != "" ) dmdArgs ~= "-of"~args.output;
         
         dmdArgs ~= args.sources;
@@ -120,6 +126,7 @@ int main(char[][] args)
         cargs.generateSymbols = true;
         cargs.enableDebug = true;
         cargs.enableUnitTest = true;
+        cargs.versions = ["Unittest"];
         
         cargs.sources ~= "utmain.d";
         
@@ -139,18 +146,19 @@ int main(char[][] args)
         utProc.copyEnv = true;
         
         utProc.execute();
-        Stdout.stream.copy(utProc.stdout);
-        Stderr.stream.copy(utProc.stderr);
+        Stdout.stream.copy(utProc.stdout).flush;
+        Stderr.stream.copy(utProc.stderr).flush;
         
         auto result = utProc.wait;
         if( result.reason != Process.Result.Exit )
         {
-            Stderr("Unit tests failed.").newline;
+            Stderr("Unit tests failed to run.").newline;
             return 1;
         }
         else if( result.status )
         {
-            throw new Exception("Unit tests failed.");
+            Stderr("Unit tests failed.").newline;
+            return 2;
         }
     }
     
