@@ -9,6 +9,7 @@ module gb.ctfe.Format;
 //debug = gb_Format_verbose;
 
 import Integer = gb.ctfe.Integer;
+import String = gb.ctfe.String;
 
 private
 {
@@ -41,6 +42,16 @@ private
                 }
                 else static if( is( Args[i] : char[] ) )
                 {
+                    if( opt == "x" )
+                    {
+                        return "x\"" ~ String.hexify_ctfe(args[i][]) ~ "\"";
+                    }
+                    
+                    if( opt == "q" )
+                    {
+                        return String.escape_ctfe(args[i][]);
+                    }
+                    
                     // If you don't slice, then the CALLER has to slice the
                     // string, otherwise CTFE barfs.
                     return args[i][];
@@ -61,6 +72,9 @@ private
         static assert( stringify(0, 0, "", 1, -2, "abc") == "1" );
         static assert( stringify(1, 0, "", 1, -2, "abc") == "-2" );
         static assert( stringify(2, 0, "", 1, -2, "abc") == "abc" );
+
+        static assert( stringify(0, 0, "x", "abc") == `x"616263"` );
+        static assert( stringify(0, 0, "q", "abc") == `"abc"` );
 
         static assert( stringify(0, 0, "x", 0x4a) == "4a" );
     }
