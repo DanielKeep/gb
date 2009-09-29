@@ -58,6 +58,11 @@ private
                 }
                 else static if( is( Args[i] Elem : Elem[] ) )
                 {
+                    if( opt == "l" )
+                    {
+                        return Integer.format_ctfe(args[i].length);
+                    }
+                    
                     char[] r = "[";
                     foreach( ei, e ; args[i][] )
                     {
