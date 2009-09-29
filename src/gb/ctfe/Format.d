@@ -19,26 +19,39 @@ private
         if( index >= args.length )
             return "{invalid index " ~ Integer.format_ctfe(index) ~ "}";
 
-        assert( alignment == 0, "non-zero alignments not supported yet" );
+        if( alignment != 0 )
+            return "{non-zero alignments not supported yet}";
 
         foreach( i,_ ; Args )
         {
             if( i == index )
             {
-                static if( is( Args[i] : long ) || is( Args[i] : ulong ) )
+                static if( is( Args[i] == char ) )
+                {
+                    char[] r;
+                    r ~= args[i];
+                    return r;
+                }
+                else static if( is( Args[i] : long ) || is( Args[i] : ulong ) )
                 {
                     int base = 10;
+                    char[] prefix = "";
 
                     if( opt == "x" )
                         base = 16;
 
+                    else if( opt == "xx" )
+                    {
+                        base = 16;
+                        prefix = "0x";
+                    }
                     else if( opt == "o" )
                         base = 8;
 
                     else if( opt == "b" )
                         base = 2;
 
-                    return Integer.format_ctfe(args[i], base);
+                    return prefix ~ Integer.format_ctfe(args[i], base);
                 }
                 else static if( is( Args[i] : char[] ) )
                 {
@@ -50,6 +63,11 @@ private
                     if( opt == "q" )
                     {
                         return String.escape_ctfe(args[i][]);
+                    }
+
+                    if( opt == "l" )
+                    {
+                        return Integer.format_ctfe(args[i].length);
                     }
                     
                     // If you don't slice, then the CALLER has to slice the
@@ -75,7 +93,7 @@ private
                 }
                 else
                 {
-                    assert(false,"cannot stringify "~Args[i].stringof);
+                    return "{cannot stringify "~Args[i].stringof~"}";
                 }
             }
         }
@@ -92,8 +110,17 @@ private
 
         static assert( stringify(0, 0, "x", "abc") == `616263` );
         static assert( stringify(0, 0, "q", "abc") == `"abc"` );
+        static assert( stringify(0, 0, "l", "abc") == `3` );
 
         static assert( stringify(0, 0, "x", 0x4a) == "4a" );
+
+        static assert( stringify(0, 0, "", [1,2,3]) == "[1, 2, 3]" );
+        static assert( stringify(0, 0, "l", [1,2,3]) == "3" );
+        static assert( stringify(0, 0, "x", [9,10]) == "[9, a]" );
+        static assert( stringify(0, 0, "", ["a","b"]) == "[a, b]" );
+        static assert( stringify(0, 0, "q", ["a","b"]) == "[\"a\", \"b\"]" );
+
+        static assert( stringify(0, 0, "", 'a') == "a" );
     }
 }
 
@@ -114,9 +141,19 @@ private
  *
  * Supported formatting options are:
  *
+ * Integers:
  * - x -- format integer in hexadecimal.
  * - o -- format integer in octal.
  * - b -- format integer in binary.
+ *
+ * Strings:
+ * - q -- quotes the string as a literal.
+ * - x -- formats as hexadecimal data.
+ * - l -- length of the string in decimal.
+ *
+ * Arrays:
+ * - l -- length of the array in decimal.
+ * - Other options are used to control element formatting.
  *
  * Params:
  *  tmpl    = template string.
