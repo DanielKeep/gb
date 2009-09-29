@@ -44,7 +44,7 @@ private
                 {
                     if( opt == "x" )
                     {
-                        return "x\"" ~ String.hexify_ctfe(args[i][]) ~ "\"";
+                        return String.hexify_ctfe(args[i][]);
                     }
                     
                     if( opt == "q" )
@@ -85,7 +85,7 @@ private
         static assert( stringify(1, 0, "", 1, -2, "abc") == "-2" );
         static assert( stringify(2, 0, "", 1, -2, "abc") == "abc" );
 
-        static assert( stringify(0, 0, "x", "abc") == `x"616263"` );
+        static assert( stringify(0, 0, "x", "abc") == `616263` );
         static assert( stringify(0, 0, "q", "abc") == `"abc"` );
 
         static assert( stringify(0, 0, "x", 0x4a) == "4a" );
@@ -337,5 +337,8 @@ version( Unittest )
     static assert(format_ctfe("O: ${2} ${0} ${1}", 1, -2, "c"[]) == "O: c 1 -2");
 
     static assert(format_ctfe("P: ${:x} ${0:x} ${0:o} ${0:b}", 42) == "P: 2a 2a 52 101010");
+
+    static assert(format_ctfe("Q: ${0} ${0:q} ${0:x}", "abc"[]) == "Q: abc \"abc\" 616263");
+    static assert(format_ctfe("R: ${0} ${0:q}", ["a","b","c"][]) == "R: [a, b, c] [\"a\", \"b\", \"c\"]");
 }
 
