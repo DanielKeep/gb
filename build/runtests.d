@@ -25,6 +25,8 @@ class CompilerArgs
     char[] output = null;
     
     char[][] sources;
+
+    char[][] extraArgs;
 }
 
 interface Compiler
@@ -50,6 +52,8 @@ class Dmd : Compiler
         if( args.output != "" ) dmdArgs ~= "-of"~args.output;
         
         dmdArgs ~= args.sources;
+
+        dmdArgs ~= args.extraArgs;
 
         Stdout('+');
         foreach( arg ; dmdArgs )
@@ -108,10 +112,16 @@ int main(char[][] args)
     args = args[1..$];
     
     auto mkCompiler = { return cast(Compiler) new Dmd; };
+    char[][] extraArgs;
     
     {
         scope argParser = new ArgParser;
         
+        argParser.bind("-", "x", (char[] value)
+        {
+            extraArgs ~= value;
+        });
+
         argParser.bind("--", "compiler", (char[] value)
         {
             mkCompiler = { return compilerFromName(value); };
@@ -127,6 +137,7 @@ int main(char[][] args)
         cargs.enableDebug = true;
         cargs.enableUnitTest = true;
         cargs.versions = ["Unittest"];
+        cargs.extraArgs = extraArgs;
         
         cargs.sources ~= "utmain.d";
         
