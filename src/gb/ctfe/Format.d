@@ -56,6 +56,18 @@ private
                     // string, otherwise CTFE barfs.
                     return args[i][];
                 }
+                else static if( is( Args[i] Elem : Elem[] ) )
+                {
+                    char[] r = "[";
+                    foreach( ei, e ; args[i][] )
+                    {
+                        if( ei != 0 )
+                            r ~= ", ";
+                        r ~= stringify(0, alignment, opt, e);
+                    }
+                    r ~= "]";
+                    return r;
+                }
                 else
                 {
                     assert(false,"cannot stringify "~Args[i].stringof);
