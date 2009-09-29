@@ -382,5 +382,37 @@ version( Unittest )
 
     static assert(format_ctfe("Q: ${0} ${0:q} ${0:x}", "abc"[]) == "Q: abc \"abc\" 616263");
     static assert(format_ctfe("R: ${0} ${0:q}", ["a","b","c"][]) == "R: [a, b, c] [\"a\", \"b\", \"c\"]");
+
+    const TORTURE_TMPL = `
+        struct $*Enum
+        {
+            const Name = ${0:q};
+            const char[][${:l}] Members = ${1:q};
+
+            ${2} value()
+            {
+                return ${3:xx};
+            }
+        }
+    `[];
+
+    const TORTURE_EXPECTED = `
+        struct FooEnum
+        {
+            const Name = "Foo";
+            const char[][3] Members = ["bar", "quxx", "zyzzy"];
+
+            int value()
+            {
+                return 0x42;
+            }
+        }
+    `[];
+
+    const TORTURE_ACTUAL = format_ctfe(TORTURE_TMPL,
+            "Foo"[], ["bar"[],"quxx","zyzzy"][],
+            "int"[], 0x42);
+
+    static assert( TORTURE_EXPECTED == TORTURE_ACTUAL );
 }
 
