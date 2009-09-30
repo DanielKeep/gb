@@ -247,3 +247,33 @@ version( Unittest )
     static assert( padr_ctfe("abc", 4) == "abc " );
     static assert( padr_ctfe("abc", 4, 'x') == "abcx" );
 }
+
+/**
+ * Determines whether a character is valid in an identifier in a
+ * non-initial position.
+ *
+ * Does not support the full range of valid D identifier characters.
+ */
+
+bool isIdentChar(char c)
+{
+    return ('a' <= c && c <= 'z')
+        || ('A' <= c && c <= 'Z')
+        || ('0' <= c && c <= '9')
+        || (c == '_');
+}
+
+/**
+ * Determines whether a character is valid in an identifier in an
+ * initial position.
+ *
+ * Does not support the full range of valid D identifier characters.
+ */
+
+bool isIdentStartChar(char c)
+{
+    return ('a' <= c && c <= 'z')
+        || ('A' <= c && c <= 'Z')
+        || (c == '_');
+}
+
