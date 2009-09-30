@@ -113,9 +113,15 @@ int main(char[][] args)
     
     auto mkCompiler = { return cast(Compiler) new Dmd; };
     char[][] extraArgs;
+    bool noRun = false;
     
     {
         scope argParser = new ArgParser;
+
+        argParser.bind("-", "c",
+        {
+            noRun = true;
+        });
         
         argParser.bind("-", "x", (char[] value)
         {
@@ -150,6 +156,7 @@ int main(char[][] args)
         compiler.compile(cargs);
     }
     
+    if( !noRun )
     {
         Stdout("+ utmain").newline;
         
