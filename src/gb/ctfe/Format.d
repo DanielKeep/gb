@@ -500,13 +500,13 @@ char[] formatNamed_ctfe(Args...)(char[] tmpl, Args args)
         }
 
         // $a... - shortcut for $a...
-        if( String.isIdentStartChar(c) )
+        if( String.isIdentStartChar_ctfe(c) )
         {
             debug(gb_Format_verbose) r ~= "{shorthand name}";
             size_t i = 0;
             while( i < tmpl.length )
             {
-                if( !String.isIdentChar(tmpl[i]) )
+                if( !String.isIdentChar_ctfe(tmpl[i]) )
                     break;
                 ++ i;
             }
@@ -552,7 +552,7 @@ char[] formatNamed_ctfe(Args...)(char[] tmpl, Args args)
                 size_t i = 0;
                 while( i < tmpl.length )
                 {
-                    if( !String.isIdentChar(tmpl[i]) )
+                    if( !String.isIdentChar_ctfe(tmpl[i]) )
                         break;
                     ++ i;
                 }
