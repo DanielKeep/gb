@@ -247,3 +247,71 @@ version( Unittest )
     static assert( padr_ctfe("abc", 4) == "abc " );
     static assert( padr_ctfe("abc", 4, 'x') == "abcx" );
 }
+
+/**
+ * Returns the tail of a string after a given splitting character.  The Rev
+ * variant returns the tail after the last instance of the splitting
+ * character.
+ */
+
+char[] tail_ctfe(char[] str, char split)
+{
+    foreach( i,c ; str )
+    {
+        if( c == split )
+            return str[i+1..$];
+    }
+    return str;
+}
+
+/// ditto
+
+char[] tailRev_ctfe(char[] str, char split)
+{
+    foreach_reverse( i,c ; str )
+    {
+        if( c == split )
+            return str[i+1..$];
+    }
+    return str;
+}
+
+/**
+ * Determines whether a character is valid in an identifier in a
+ * non-initial position.
+ *
+ * Does not support the full range of valid D identifier characters.
+ */
+
+bool isIdentChar_ctfe(char c)
+{
+    return ('a' <= c && c <= 'z')
+        || ('A' <= c && c <= 'Z')
+        || ('0' <= c && c <= '9')
+        || (c == '_');
+}
+
+/**
+ * Determines whether a character is valid in an identifier in an
+ * initial position.
+ *
+ * Does not support the full range of valid D identifier characters.
+ */
+
+bool isIdentStartChar_ctfe(char c)
+{
+    return ('a' <= c && c <= 'z')
+        || ('A' <= c && c <= 'Z')
+        || (c == '_');
+}
+
+/**
+ * Returns a line spec suitable for mixing in.  This can be used with string
+ * mixins to ensure compile errors appear on the "correct" line in the source.
+ */
+
+char[] linespec_ctfe(char[] file, long line)
+{
+    return "#line "~Integer.format_ctfe(line)~" \"" ~ file ~ "\"\n";
+}
+

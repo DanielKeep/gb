@@ -10,6 +10,7 @@ module gb.ctfe.Format;
 
 import Integer = gb.ctfe.Integer;
 import String = gb.ctfe.String;
+import Tuple = gb.util.Tuple;
 
 private
 {
@@ -136,6 +137,9 @@ private
  * - ${:f} -- Next argument, using format options "f".
  * - ${n} -- nth argument.
  * - ${n:f} -- nth argument, using format options "f".
+ *
+ * formatNamed allows the use of named arguments (given as alternating
+ * name,value pairs), but disallows "next" argument and indexed forms.
  *
  * Eventually, alignment and named arguments will be supported.
  *
@@ -414,5 +418,276 @@ version( Unittest )
             "int"[], 0x42);
 
     static assert( TORTURE_EXPECTED == TORTURE_ACTUAL );
+}
+
+private
+{
+    size_t findIndexByName(Args...)(char[] name, Args args)
+    {
+        foreach( i ; Tuple.Sequence!(0, Args.length, 2) )
+        {
+            static if( !is( Args[i] : char[] ) )
+            {
+                static assert(false, "expected string for argument "
+                        ~ Integer.format_ctfe(i) ~ " in " ~ Args.stringof
+                        ~ " not " ~ Args[i].stringof);
+            }
+            if( name == args[i][] )
+                return i+1;
+        }
+        return size_t.max;
+    }
+
+    version( Unittest )
+    {
+        static assert( findIndexByName("a", "a", 0, "b", 1) == 1 );
+        static assert( findIndexByName("b", "a", 0, "b", 1) == 3 );
+        static assert( findIndexByName("c", "a", 0, "b", 1) == size_t.max );
+    }
+}
+
+/// ditto
+
+char[] formatNamed_ctfe(Args...)(char[] tmpl, Args args)
+{
+    char[] r = "";
+    int argPos = 0;
+    
+    while( tmpl.length > 0 )
+    {
+        bool inExp = false;
+       
+        // Look for a $
+        foreach( i,c ; tmpl )
+        {
+            if (c == '$')
+            {
+                inExp = true;
+                r ~= tmpl[0..i];
+                tmpl = tmpl[i+1..$];
+                break;
+            }
+        }
+
+        // If we didn't find a $, it's because we hit the end of the template.
+        if( !inExp )
+        {
+            r ~= tmpl;
+            break;
+        }
+        
+        // So we're in an expansion/substitution.
+
+        debug(gb_Format_verbose) r ~= "{in exp}";
+
+        if( tmpl.length == 0 )
+        {
+            r ~= "{unterminated substitution}";
+            break;
+        }
+
+        // c is the next character, whilst tmpl is everything left in the
+        // template string.
+        char c = tmpl[0];
+        tmpl = tmpl[1..$];
+        
+        // $$ - escaped $.
+        if( c == '$' )
+        {
+            debug(gb_Format_verbose) r ~= "{escaped $}";
+            r ~= '$';
+            continue;
+        }
+
+        // $a... - shortcut for $a...
+        if( String.isIdentStartChar_ctfe(c) )
+        {
+            debug(gb_Format_verbose) r ~= "{shorthand name}";
+            size_t i = 0;
+            while( i < tmpl.length )
+            {
+                if( !String.isIdentChar_ctfe(tmpl[i]) )
+                    break;
+                ++ i;
+            }
+            char[] name = c ~ tmpl[0..i];
+            tmpl = tmpl[i..$];
+            r ~= stringify(findIndexByName(name, args), 0, "", args);
+            continue;
+        }
+
+        // This means we got a $ followed by something unexpected.
+        if( c != '{' )
+        {
+            r ~= "{malformed substitution}";
+            break;
+        }
+        
+        if( tmpl.length == 0 )
+        {
+            r ~= "{unterminated substitution}";
+            break;
+        }
+        
+        debug(gb_Format_verbose)
+        {
+            r ~= "{parse complex at '";
+            r ~= c;
+            r ~= "':\"" ~ tmpl ~ "\"}";
+        }
+
+        // NOTE: We haven't updated c and tmpl yet.
+
+        {
+            // arg will contain the index of the argument the user wanted
+            // substituted.
+            size_t arg = size_t.max;
+            // fmt will contain any additional formatting options.
+            char[] fmt = "";
+
+            // If we didn't get a : or }, that means we expect a name.
+            if( !( tmpl[0] == ':' || tmpl[0] == '}' ) )
+            {
+                // So parse it.
+                size_t i = 0;
+                while( i < tmpl.length )
+                {
+                    if( !String.isIdentChar_ctfe(tmpl[i]) )
+                        break;
+                    ++ i;
+                }
+                char[] name = tmpl[0..i];
+                tmpl = tmpl[i..$];
+
+                arg = findIndexByName(name, args);
+                
+                if( tmpl.length == 0 )
+                {
+                    r ~= "{unterminated substitution}";
+                    break;
+                }
+            }
+            else
+            {
+                // Otherwise, the name was elided.  Kaboom!
+                r ~= "{substitution missing name}";
+                break;
+            }
+
+            c = tmpl[0];
+            tmpl = tmpl[1..$];
+
+            debug(gb_Format_verbose)
+                r ~= "{index " ~ Integer.format_ctfe(arg) ~ "}";
+
+            // If c is :, then we've got formatting options to parse
+
+            if( c == ':' )
+            {
+                debug(gb_Format_verbose) r ~= "{fmt string}";
+
+                // Look for the closing }.
+                size_t len = 0;
+                foreach( i,d ; tmpl )
+                {
+                    if( d == '}' )
+                    {
+                        len = i;
+                        break;
+                    }
+                }
+                if( len == 0 )
+                {
+                    r ~= "{malformed format}";
+                    break;
+                }
+                fmt = tmpl[0..len];
+                tmpl = tmpl[len..$];
+
+                debug(gb_Format_verbose) r ~= "{fmt:"~fmt~"}";
+
+                if( tmpl.length == 0 )
+                {
+                    r ~= "{unterminated substitution}";
+                    break;
+                }
+
+                c = tmpl[0];
+                tmpl = tmpl[1..$];
+            }
+
+            // At this point, we should have the closing }.  If not, someone's
+            // screwed up.
+            if( c != '}' )
+            {
+                debug(gb_Format_verbose)
+                {
+                    r ~= "{expected closing; got '";
+                    r ~= c;
+                    r ~= "':\"" ~ tmpl ~ "\"}";
+                }
+                r ~= "{malformed substitution}";
+                break;
+            }
+
+            // Stringify that bugger.
+            r ~= stringify(arg, 0, fmt, args);
+
+            // When we fall off the end here, we'll continue with the
+            // remainder of tmpl, unless it's empty in which case we're
+            // finished.
+        }
+    }
+    
+    return r;
+}
+
+version( Unittest )
+{
+    static assert( formatNamed_ctfe("A: $$", "a"[], 0, "b"[], 1) == "A: $" );
+    static assert( formatNamed_ctfe("B: $a", "a"[], 0, "b"[], 1) == "B: 0" );
+    static assert( formatNamed_ctfe("C: $b", "a"[], 0, "b"[], 1) == "C: 1" );
+
+    static assert( formatNamed_ctfe("D: ${a}", "a"[], 0, "b"[], 1) == "D: 0" );
+    static assert( formatNamed_ctfe("E: ${b}", "a"[], 0, "b"[], 1) == "E: 1" );
+    
+    static assert( formatNamed_ctfe("F: $foo$bar", "foo"[], 0, "bar"[], 1) == "F: 01" );
+    static assert( formatNamed_ctfe("G: ${foo}${bar}", "foo"[], 0, "bar"[], 1) == "G: 01" );
+
+    static assert( formatNamed_ctfe("H: ${foo:x}${bar:xx}", "foo"[], 0, "bar"[], 1) == "H: 00x1" );
+
+    const TORTURE_NAMED_TMPL = `
+        struct ${name}Enum
+        {
+            const Name = ${name:q};
+            const char[][${members:l}] Members = ${members:q};
+
+            ${retType} value()
+            {
+                return ${value:xx};
+            }
+        }
+    `[];
+
+    const TORTURE_NAMED_EXPECTED = `
+        struct FooEnum
+        {
+            const Name = "Foo";
+            const char[][3] Members = ["bar", "quxx", "zyzzy"];
+
+            int value()
+            {
+                return 0x42;
+            }
+        }
+    `[];
+
+    const TORTURE_NAMED_ACTUAL = formatNamed_ctfe(TORTURE_NAMED_TMPL,
+            "name"[], "Foo"[],
+            "members"[], ["bar"[],"quxx","zyzzy"][],
+            "retType"[], "int"[],
+            "value"[], 0x42);
+
+    static assert( TORTURE_NAMED_EXPECTED == TORTURE_NAMED_ACTUAL );
 }
 
