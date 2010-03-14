@@ -6,6 +6,9 @@
  */
 module gb.ctfe.Integer;
 
+import gb.util.CC : Version;
+import gb.util.Endianness : Endianness;
+
 /**
  * Formats an integer as a string.  You can optionally specify a different
  * base; any value between 2 and 16 inclusive is supported.
@@ -167,3 +170,52 @@ version( Unittest )
     
     static assert( parseAll_ctfe!(long)("123") == 123 );
 }
+
+/**
+ * Reinterprets a string as an integer value.  Note that the output of this
+ * (obviously) depends on endianness.  If you don't specify an endianness, it
+ * uses whatever endianness the target system has.
+ */
+
+intT recastAsInteger_ctfe(intT)(char[] str, Endianness bo = Endianness.Auto)
+{
+    if( str.length != intT.sizeof )
+        assert(false, "Cannot recast '"~str~"' as an "~intT.stringof
+                ~": wrong size.");
+    
+    if( bo == Endianness.Auto )
+        bo = Version!(BigEndian) ? Endianness.Big : Endianness.Little;
+
+    intT v = 0;
+
+    foreach( dchar c ; str )
+    {
+        v <<= 8;
+
+        if( c > 0x7f )
+            assert(false, "Cannot recast '"~str~"' as an "~intT.stringof
+                    ~": contains non-ASCII characters.");
+
+        v |= cast(intT) c;
+    }
+
+    if( bo == Endianness.Big )
+    {
+        intT tmp = v;
+        v = 0;
+
+        for( int i = (intT.sizeof - 1) * 8; i >= 0; i -= 8 )
+        {
+            v <<= 8;
+            v |= (tmp>>i) & 0xff;
+        }
+    }
+
+    return v;
+}
+
+version( Unittest )
+{
+    static assert( recastAsInteger!(uint)("ABCD") == 0x41424344 );
+}
+
