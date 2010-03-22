@@ -2,7 +2,7 @@ module gb.tools.HashTest.tests.insert_integer_sequential;
 
 import gb.tools.HashTest.harness;
 
-class Insert_Sequential : Test
+class Insert_Integer_Sequential : Test
 {
     size_t insertions = 1_000_000u;
     size_t stride = 1u;
@@ -65,6 +65,6 @@ class Insert_Sequential : Test
 
 static this()
 {
-    registerTest!(Insert_Sequential);
+    registerTest!(Insert_Integer_Sequential);
 }
 
