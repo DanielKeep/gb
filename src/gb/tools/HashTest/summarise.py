@@ -25,7 +25,7 @@ PREFIXES = {
 PREFIXES_REV = ('n', 'μ', 'm', '', 'k', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y')
 
 def to_seconds(num, prefix):
-    return float(num) * 1000**PREFIXES[prefix]
+    return float(num.replace(',','')) * 1000**PREFIXES[prefix]
 
 def fmt_sec(sec):
     # Convert to nano-seconds
@@ -81,19 +81,19 @@ def parse_log(ins):
         elif line.startswith(": "):
             if line.startswith(": range = "):
                 mi,mip,ma,map = re.search(
-                    r"\[(\d+\.\d+) ([^s]?)s, (\d+\.\d+) ([^s]?)s\]",
+                    r"\[([\d.,]+) ([^s]*)s, ([\d.,]+) ([^s]*)s\]",
                     line).groups()
                 test_min_max = to_seconds(mi,mip), to_seconds(ma,map)
 
             elif line.startswith(": μ = "):
                 m,mp,s,sd = re.search(
-                    r"μ = (\d+\.\d+) ([^s]?)s, σ = (\d+\.\d+) ([^s]?)s",
+                    r"μ = ([\d.,]+) ([^s]*)s, σ = ([\d.,]+) ([^s]*)s",
                     line).groups()
                 test_mean_sd = to_seconds(m,mp), to_seconds(s,sd)
 
             elif line.startswith(": 95% CI = "):
                 c,cp = re.search(
-                    r"± (\d+\.\d+) ([^s]?)s",
+                    r"± ([\d.,]+) ([^s]*)s",
                     line).groups()
                 test_95_conf = to_seconds(c,cp)
 
