@@ -145,7 +145,9 @@ def main(args):
         baseline = data['builtin']['mean']
 
         for full,short in impl_list[1:]:
-            row += ['%.2f x' % (baseline/data[full]['mean'] - 1.0)]
+            frac = baseline/data[full]['mean']
+            if frac < 1.0: frac = -(1.0/frac)
+            row += ['%.2f x' % frac]
 
         table_data.append(row)
 
