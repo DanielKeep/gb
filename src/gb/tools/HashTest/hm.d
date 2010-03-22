@@ -60,7 +60,7 @@ else version( _UseBuiltin )
 {
     template HM(K,V)
     {
-        alias K[V] HM;
+        alias V[K] HM;
     }
 
     HM!(K,V) hmInit(K,V)()
