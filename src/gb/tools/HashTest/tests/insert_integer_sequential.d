@@ -1,4 +1,4 @@
-module gb.tools.HashTest.tests.insert_sequential;
+module gb.tools.HashTest.tests.insert_integer_sequential;
 
 import gb.tools.HashTest.harness;
 
