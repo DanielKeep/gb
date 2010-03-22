@@ -4,7 +4,7 @@ import gb.tools.HashTest.harness;
 
 class Insert_Integer_Sequential : Test
 {
-    size_t insertions = 1_000_000u;
+    size_t insertions = 100_000u;
     size_t stride = 1u;
 
     override void config(char[][] args)
