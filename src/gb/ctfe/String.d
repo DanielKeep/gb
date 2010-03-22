@@ -277,6 +277,44 @@ char[] tailRev_ctfe(char[] str, char split)
 }
 
 /**
+ * Determines if the character is whitespace.  Includes newline characters.
+ *
+ * TODO: handle all the various unicode spaces.
+ */
+
+bool isWs_ctfe(char c)
+{
+    switch( c )
+    {
+        case ' ':
+        case '\t':
+        case '\v':
+        case '\f':
+        case '\r':
+        case '\n':
+            return true;
+
+        default:
+            return false;
+    }
+}
+
+/**
+ * Looks for, and returns the length of, a newline at the start of the string.
+ */
+
+size_t isNl_ctfe(char[] str)
+{
+    auto l = str.length;
+    if( l >= 2 && str[0..2] == "\r\n" )
+        return 2;
+    else if( l >= 1 && str[0] == '\r' || str[0] == '\n' )
+        return 1;
+    else
+        return 0;
+}
+
+/**
  * Determines whether a character is valid in an identifier in a
  * non-initial position.
  *
@@ -313,5 +351,33 @@ bool isIdentStartChar_ctfe(char c)
 char[] linespec_ctfe(char[] file, long line)
 {
     return "#line "~Integer.format_ctfe(line)~" \"" ~ file ~ "\"\n";
+}
+
+/**
+ * Strips whitespace from the string.  stripl and stripr strip from the left
+ * and right, respectively, whilst plain old strip removes both.
+ */
+
+char[] strip_ctfe(char[] str)
+{
+    return stripl_ctfe(stripr_ctfe(str));
+}
+
+/// ditto
+
+char[] stripl_ctfe(char[] str)
+{
+    while( str.length > 0 && isWs_ctfe(str[0]) )
+        str = str[1..$];
+    return str;
+}
+
+/// ditto
+
+char[] stripr_ctfe(char[] str)
+{
+    while( str.length > 0 && isWs_ctfe(str[$-1]) )
+        str = str[0..$-1];
+    return str;
 }
 
