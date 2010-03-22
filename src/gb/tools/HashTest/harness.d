@@ -1,6 +1,7 @@
 module gb.tools.HashTest.harness;
 
 import hm = gb.tools.HashTest.hm;
+import Memory = tango.core.Memory;
 import VariantMod = tango.core.Variant;
 import StopWatchMod = tango.time.StopWatch;
 import Convert = tango.util.Convert;
@@ -14,6 +15,7 @@ abstract class Test
     alias hm.hmInit hmInit;
     alias hm.hmClear hmClear;
     alias hm.hmLength hmLength;
+    alias Memory.GC GC;
     alias VariantMod.Variant Variant;
     alias StopWatchMod.StopWatch StopWatch;
     alias Convert.to to;
