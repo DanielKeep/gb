@@ -1,7 +1,7 @@
 @ECHO OFF
 
 set FLAGS=--cpu-info
-set TESTS=+i-seq 100000 +i-seq 200000 2
+set TESTS=+i-i-seq 100000 +i-i-seq 200000 2 +i-s-seq 100000 +i-s-seq 200000 2
 
 del *.log
 
