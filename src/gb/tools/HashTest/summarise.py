@@ -131,7 +131,9 @@ def main(args):
 
     header = [u'Test']
     for _,short in impl_list:
-        header += [u'%s μ' % short, u'σ', u'95% ±']
+        header += [u'%s μ' % short,
+                   #u'σ',
+                   u'95% ±']
     for _,short in impl_list[1:]:
         header += [short]
 
@@ -143,7 +145,7 @@ def main(args):
         for full,short in impl_list:
             print '- %s : %s' % (test, full)
             row += [fmt_sec(data[full]['mean']),
-                    fmt_sec(data[full]['sd']),
+                    #fmt_sec(data[full]['sd']),
                     fmt_sec(data[full]['95%'])]
 
         baseline = data['builtin']['mean']
