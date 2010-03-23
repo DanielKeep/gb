@@ -1,7 +1,7 @@
 @ECHO OFF
 
 set XF_FLAGS=-I../../.. -g -release -inline -O
-set TESTS=tests/insert_integer_random.d tests/insert_integer_sequential.d tests/insert_string_sequential.d tests/lookup_integer_sequential.d
+set TESTS=tests/insert_bigkey_sequential.d tests/insert_integer_random.d tests/insert_integer_sequential.d tests/insert_string_sequential.d tests/lookup_integer_sequential.d
 
 echo builtin:
 xfbuild +oHashTest-builtin +D.deps.builtin +O.objs.builtin %XF_FLAGS% -version=UseBuiltin entry.d %TESTS%
