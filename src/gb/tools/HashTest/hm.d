@@ -30,6 +30,7 @@ else
 version( _UseGB )
 {
     import gb.util.HashMap : HashMap;
+    import gb.util.impl.HashMap : GrowthStyleShort;
 
     template HM(K,V)
     {
@@ -53,7 +54,7 @@ version( _UseGB )
 
     char[] hmSignature()
     {
-        return "gb";
+        return "gb-" ~ GrowthStyleShort;
     }
 }
 else version( _UseBuiltin )

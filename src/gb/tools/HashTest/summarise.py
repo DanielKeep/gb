@@ -99,7 +99,11 @@ def parse_log(ins):
 
     if hm_sig is not None:
         yield bundle()
-            
+
+
+def shorten(s):
+    bits = s.split("-")
+    return "-".join([bits[0][:2]] + bits[1:])
 
 
 def main(args):
@@ -123,7 +127,7 @@ def main(args):
 
     impls.remove('builtin')
     impl_list = zip(['builtin'] + list(sorted(impls)),
-                    ['bi'] + [n[:2] for n in sorted(impls)])
+                    ['bi'] + [shorten(n) for n in sorted(impls)])
 
     header = [u'Test']
     for _,short in impl_list:

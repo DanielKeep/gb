@@ -12,7 +12,9 @@ del *.log
 
 HashTest-builtin %FLAGS% %TESTS% >> HashTest-builtin.log
 HashTest-tango   %FLAGS% %TESTS% >> HashTest-tango.log
-HashTest-gb      %FLAGS% %TESTS% >> HashTest-gb.log
+HashTest-gb-m2   %FLAGS% %TESTS% >> HashTest-gb-m2.log
+HashTest-gb-lm   %FLAGS% %TESTS% >> HashTest-gb-lm.log
+HashTest-gb-sp   %FLAGS% %TESTS% >> HashTest-gb-sp.log
 
-copy /B HashTest-builtin.log + /B HashTest-tango.log + /B HashTest-gb.log HashTest.log
+copy /B HashTest-builtin.log + /B HashTest-tango.log + /B HashTest-gb-m2.log + /B HashTest-gb-lm.log + /B HashTest-gb-sp.log HashTest.log
 

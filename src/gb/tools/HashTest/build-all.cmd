@@ -10,5 +10,7 @@ echo tango:
 xfbuild +oHashTest-tango +D.deps.tango +O.objs.tango %XF_FLAGS% -version=UseTango entry.d %TESTS%
 
 echo gb:
-xfbuild +oHashTest-gb +D.deps.gb +O.objs.gb %XF_FLAGS% -version=UseGB entry.d %TESTS%
-
+set GB_LINE=%XF_FLAGS% -version=UseGB entry.d %TESTS%
+xfbuild +oHashTest-gb-m2 -version=HashMap_Growth_Multiple2 +D.deps.gb-m2 +O.objs.gb-m2 %GB_LINE%
+xfbuild +oHashTest-gb-lm -version=HashMap_Growth_LogMultiple +D.deps.gb-lm +O.objs.gb-lm %GB_LINE%
+xfbuild +oHashTest-gb-sp -version=HashMap_Growth_SimplePoly +D.deps.gb-sp +O.objs.gb-sp %GB_LINE%
