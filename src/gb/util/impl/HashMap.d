@@ -46,6 +46,9 @@ const LoadFactorMax = 0.75f;
 version( HashMap_Growth_Multiple2 )
     version = _HashMap_Growth_Multiple2;
 
+else version( HashMap_Growth_LogMultiple )
+    version = _HashMap_Growth_LogMultiple;
+
 else version( HashMap_Growth_SimplePoly )
     version = _HashMap_Growth_SimplePoly;
 
@@ -65,6 +68,8 @@ version( _HashMap_Growth_Multiple2 )
     // Simple multiple of two growth with base size of 8.
     //
 
+    const GrowthStyle = "Multiple2";
+    const GrowthStyleShort = "m2";
     const MinimumBuckets = 8u;
 
     size_t growBuckets(size_t current)
@@ -85,12 +90,58 @@ version( _HashMap_Growth_Multiple2 )
         return newSize;
     }
 }
+else version( _HashMap_Growth_LogMultiple )
+{
+    //
+    // Grow by a multiple which shrinks as the number of buckets increases.
+    //
+
+    const GrowthStyle = "LogMultiple";
+    const GrowthStyleShort = "lm";
+    const MinimumBuckets = 8u;
+
+    size_t growBuckets(size_t current)
+    {
+        size_t newSize;
+        
+        if( current < 64u )
+            newSize = current * 8u;
+        else if( current < 256u )
+            newSize = current * 4u;
+        else
+            newSize = current * 2u;
+
+        if( newSize < MinimumBuckets )
+            return MinimumBuckets;
+        
+        return newSize;
+    }
+
+    size_t shrinkBuckets(size_t current)
+    {
+        size_t newSize;
+
+        if( current <= 64u )
+            newSize = current / 8u;
+        else if( current <= 256u )
+            newSize = current / 4u;
+        else
+            newSize = current / 2u;
+
+        if( newSize < MinimumBuckets )
+            return MinimumBuckets;
+
+        return newSize;
+    }
+}
 else version( _HashMap_Growth_SimplePoly )
 {
     //
     // Simple 2n+1 polynomial with 7 as the base size.
     //
 
+    const GrowthStyle = "SimplePoly";
+    const GrowthStyleShort = "sp";
     const MinimumBuckets = 7u;
 
     size_t growBuckets(size_t current)
